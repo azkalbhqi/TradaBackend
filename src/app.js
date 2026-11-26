@@ -3,6 +3,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './docs/swagger.js';
+
 import infoRoutes from './features/information/info.routes.js';
 import signalRoutes from './features/signal/signal.routes.js';
 import newsRoutes from './features/news/news.routes.js';
@@ -17,16 +20,22 @@ dotenv.config();
 const app = express();
 
 // --- Global Middlewares ---
-app.use(helmet());                // Security headers
-app.use(cors());                  // Allow cross-origin requests
-app.use(morgan('dev'));           // Logger
-app.use(express.json());          // Parse JSON body
+app.use(helmet({ contentSecurityPolicy: false })); // Allow Swagger UI inline scripts & styles
+app.use(cors());                                  // Allow cross-origin requests
+app.use(morgan('dev'));                           // Logger
+app.use(express.json());                          // Parse JSON body
 app.use(express.urlencoded({ extended: true }));
+
+// --- Swagger Documentation ---
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: 'DivineIT Trading DSS - API Docs',
+}));
 
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'DivineIT Trading DSS API is running'
+    message: 'DivineIT Trading DSS API is running',
+    docs: '/api-docs'
   });
 });
 
