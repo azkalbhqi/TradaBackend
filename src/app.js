@@ -5,6 +5,8 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import infoRoutes from './features/information/info.routes.js';
 import signalRoutes from './features/signal/signal.routes.js';
+import newsRoutes from './features/news/news.routes.js';
+import marketRoutes from './features/market/market.routes.js';
 
 // Import Middlewares & Routes
 import { errorHandler } from './middlewares/error.handler.js';
@@ -22,22 +24,27 @@ app.use(express.json());          // Parse JSON body
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
-    res.status(200).json({ 
-      success: true, 
-      message: 'DivineIT Trading DSS API is running' 
-    });
+  res.status(200).json({
+    success: true,
+    message: 'DivineIT Trading DSS API is running'
   });
+});
+
 // --- Health Check ---
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'DivineIT Trading DSS API is running' });
 });
 
-//Information Routes
+// --- Feature Routes ---
 app.use('/information', infoRoutes);
 app.use('/signal', signalRoutes);
-// --- API Routes ---
+app.use('/news', newsRoutes);
+app.use('/market', marketRoutes);
+
+// --- Compatibility /api Prefix Aliases ---
+app.use('/api/news', newsRoutes);
+app.use('/api/market', marketRoutes);
 // app.use('/api/auth', authRoutes);
-// app.use('/api/market', marketRoutes);
 
 // --- Error Handling ---
 app.use(errorHandler);
