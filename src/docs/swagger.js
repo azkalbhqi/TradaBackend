@@ -7,15 +7,24 @@ export const swaggerSpec = {
   },
   servers: [
     {
+      url: '/',
+      description: 'Current server (Auto-detect host & port)',
+    },
+    {
+      url: 'http://localhost:5000',
+      description: 'Local development server (PORT 5000)',
+    },
+    {
       url: 'http://localhost:3000',
-      description: 'Local development server',
+      description: 'Local development server (PORT 3000)',
     },
   ],
   tags: [
     { name: 'System', description: 'System health and status endpoints' },
-    { name: 'Information', description: 'Market information and news management' },
+    { name: 'Information', description: 'Market information and announcement management' },
     { name: 'Signal', description: 'Trading signals management' },
-    { name: 'Market', description: 'Market prices and technical analytics' },
+    { name: 'News', description: 'Global financial news feed (FreeNewsApi)' },
+    { name: 'Market', description: 'Modular market prices (Yahoo Finance) and crypto market metrics (CoinMarketCap)' },
   ],
   paths: {
     '/': {
@@ -493,83 +502,187 @@ export const swaggerSpec = {
         },
       },
     },
-    '/market/summary/{symbol}': {
+    '/news': {
       get: {
-        tags: ['Market'],
-        summary: 'Get market price summary for a crypto ticker',
+        tags: ['News'],
+        summary: 'Get financial news feed (FreeNewsApi)',
         parameters: [
           {
-            name: 'symbol',
-            in: 'path',
-            required: true,
+            name: 'topic',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: 'finance' },
+            description: 'News topic/category (e.g. finance, economy, digital currencies)',
+          },
+          {
+            name: 'language',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: 'en' },
+            description: 'Language code',
+          },
+          {
+            name: 'country',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: 'us' },
+            description: 'Country code',
+          },
+          {
+            name: 'in_title',
+            in: 'query',
+            required: false,
             schema: { type: 'string' },
-            description: 'Coin ticker (e.g. BTC, ETH)',
-            example: 'BTC',
+            description: 'Filter articles by title keyword',
+          },
+          {
+            name: 'refresh',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: false },
+            description: 'Bypass 2-minute cache',
           },
         ],
         responses: {
           200: {
-            description: 'Market summary found',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    success: { type: 'boolean', example: true },
-                    data: { $ref: '#/components/schemas/MarketSummary' },
-                  },
-                },
-              },
-            },
-          },
-          404: {
-            description: 'Symbol not found',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
+            description: 'List of finance news articles',
           },
         },
       },
     },
-    '/market/analytic/{symbol}': {
+    '/news/{uuid}': {
       get: {
-        tags: ['Market'],
-        summary: 'Get technical market analytics (EMA 50, Trend, Distance)',
+        tags: ['News'],
+        summary: 'Get full news article detail by UUID',
         parameters: [
           {
-            name: 'symbol',
+            name: 'uuid',
             in: 'path',
             required: true,
             schema: { type: 'string' },
-            description: 'Coin ticker (e.g. BTC, ETH)',
-            example: 'BTC',
+            description: 'Article UUID from /news feed',
           },
         ],
         responses: {
-          200: {
-            description: 'Market analytics found',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    success: { type: 'boolean', example: true },
-                    data: { $ref: '#/components/schemas/MarketAnalytic' },
-                  },
-                },
-              },
-            },
+          200: { description: 'Article details found' },
+          404: { description: 'News article not found' },
+        },
+      },
+    },
+    '/market': {
+      get: {
+        tags: ['Market'],
+        summary: 'Get market prices across all modules (or filter by module)',
+        parameters: [
+          {
+            name: 'module',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+            description: 'Optional comma-separated module filter: index-commodity, us-stocks, indo-stocks, us-treasury, crypto',
+            example: 'us-stocks,crypto',
           },
-          404: {
-            description: 'Symbol not found',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 10 },
+            description: 'Number of CMC crypto listings when crypto module is included',
           },
+          {
+            name: 'convert',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: 'USD' },
+            description: 'Currency conversion for CMC listings (e.g. USD, IDR)',
+          },
+        ],
+        responses: {
+          200: { description: 'Market data grouped by module' },
+        },
+      },
+    },
+    '/market/modules': {
+      get: {
+        tags: ['Market'],
+        summary: 'Get list of selectable market modules and their tickers',
+        responses: {
+          200: { description: 'Available market modules' },
+        },
+      },
+    },
+    '/market/{module}': {
+      get: {
+        tags: ['Market'],
+        summary: 'Get market prices for a specific module (Crypto module includes CMC listings & Fear/Greed)',
+        parameters: [
+          {
+            name: 'module',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              enum: ['index-commodity', 'us-stocks', 'indo-stocks', 'us-treasury', 'crypto'],
+            },
+            description: 'Target market module key',
+            example: 'crypto',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 10 },
+            description: 'CMC listings limit (only used when module is crypto)',
+          },
+          {
+            name: 'convert',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: 'USD' },
+            description: 'CMC quote currency (only used when module is crypto)',
+          },
+        ],
+        responses: {
+          200: { description: 'Module market data found' },
+          400: { description: 'Invalid market module' },
+        },
+      },
+    },
+    '/market/crypto/listings': {
+      get: {
+        tags: ['Market'],
+        summary: 'Get latest cryptocurrency market listings from CoinMarketCap',
+        parameters: [
+          {
+            name: 'start',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 1 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 10 },
+          },
+          {
+            name: 'convert',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: 'USD' },
+          },
+        ],
+        responses: {
+          200: { description: 'CoinMarketCap latest listings' },
+        },
+      },
+    },
+    '/market/crypto/fear-and-greed': {
+      get: {
+        tags: ['Market'],
+        summary: 'Get latest Crypto Fear & Greed Index from CoinMarketCap',
+        responses: {
+          200: { description: 'CoinMarketCap Fear & Greed Index' },
         },
       },
     },

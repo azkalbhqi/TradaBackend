@@ -20,7 +20,10 @@ dotenv.config();
 const app = express();
 
 // --- Global Middlewares ---
-app.use(helmet({ contentSecurityPolicy: false })); // Allow Swagger UI inline scripts & styles
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));                                              // Allow Swagger UI & cross-origin frontend requests
 app.use(cors());                                  // Allow cross-origin requests
 app.use(morgan('dev'));                           // Logger
 app.use(express.json());                          // Parse JSON body
@@ -49,11 +52,6 @@ app.use('/information', infoRoutes);
 app.use('/signal', signalRoutes);
 app.use('/news', newsRoutes);
 app.use('/market', marketRoutes);
-
-// --- Compatibility /api Prefix Aliases ---
-app.use('/api/news', newsRoutes);
-app.use('/api/market', marketRoutes);
-// app.use('/api/auth', authRoutes);
 
 // --- Error Handling ---
 app.use(errorHandler);
