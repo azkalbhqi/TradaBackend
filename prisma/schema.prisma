@@ -19,6 +19,7 @@ model User {
   username      String        @unique
   email         String        @unique
   password_hash String
+  role          String        @default("user")
   created_at    DateTime      @default(now())
   
   // Relationship for Favorite Symbol
@@ -29,6 +30,25 @@ model User {
   chat_histories ChatHistory[]
   informations   Information[]
   signals        Signal[]
+  refresh_tokens RefreshToken[]
+}
+
+model RefreshToken {
+  id               Int       @id @default(autoincrement())
+  user_id          Int
+  token_hash       String    @unique
+  family_id        String
+  user_agent       String?
+  ip_address       String?
+  expires_at       DateTime
+  revoked_at       DateTime?
+  replaced_by_hash String?
+  created_at       DateTime  @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([family_id])
 }
 
 model Symbol {

@@ -13,7 +13,7 @@ import marketRoutes from './features/market/market.routes.js';
 
 // Import Middlewares & Routes
 import { errorHandler } from './middlewares/error.handler.js';
-// import authRoutes from './features/auth/auth.routes.js'; // Nanti diuncomment kalau file sudah ada
+import authRoutes from './features/auth/auth.routes.js';
 
 dotenv.config();
 
@@ -24,7 +24,7 @@ app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));                                              // Allow Swagger UI & cross-origin frontend requests
-app.use(cors());                                  // Allow cross-origin requests
+app.use(cors({ origin: true, credentials: true })); // Allow cross-origin requests & refresh cookies
 app.use(morgan('dev'));                           // Logger
 app.use(express.json());                          // Parse JSON body
 app.use(express.urlencoded({ extended: true }));
@@ -48,6 +48,7 @@ app.get('/health', (req, res) => {
 });
 
 // --- Feature Routes ---
+app.use('/auth', authRoutes);
 app.use('/information', infoRoutes);
 app.use('/signal', signalRoutes);
 app.use('/news', newsRoutes);

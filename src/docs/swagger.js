@@ -21,6 +21,7 @@ export const swaggerSpec = {
   ],
   tags: [
     { name: 'System', description: 'System health and status endpoints' },
+    { name: 'Auth', description: 'Authentication, JWT access & refresh token rotation' },
     { name: 'Information', description: 'Market information and announcement management' },
     { name: 'Signal', description: 'Trading signals management' },
     { name: 'News', description: 'Global financial news feed (FreeNewsApi)' },
@@ -68,6 +69,151 @@ export const swaggerSpec = {
               },
             },
           },
+        },
+      },
+    },
+    '/auth/register': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Register a new user account',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['username', 'email', 'password'],
+                properties: {
+                  username: { type: 'string', example: 'trader_pro' },
+                  email: { type: 'string', format: 'email', example: 'trader@example.com' },
+                  password: { type: 'string', format: 'password', example: 'Password123' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'User registered, returns access & refresh tokens' },
+          400: { description: 'Validation error' },
+          409: { description: 'Email or username already registered' },
+        },
+      },
+    },
+    '/auth/login': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Login with email/username and password',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['password'],
+                properties: {
+                  identifier: { type: 'string', example: 'admin@tradebackend.local' },
+                  password: { type: 'string', format: 'password', example: 'password123' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Login successful, returns access & refresh tokens' },
+          401: { description: 'Invalid credentials' },
+        },
+      },
+    },
+    '/auth/refresh': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Rotate refresh token and issue a new access token',
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  refreshToken: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'New access & refresh token pair issued' },
+          401: { description: 'Invalid, expired, or reused refresh token' },
+        },
+      },
+    },
+    '/auth/logout': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Revoke current refresh token and clear cookie',
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  refreshToken: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Logged out successfully' },
+        },
+      },
+    },
+    '/auth/logout-all': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Revoke all active refresh tokens for the authenticated user',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'All sessions revoked' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/auth/me': {
+      get: {
+        tags: ['Auth'],
+        summary: 'Get authenticated user profile',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'Authenticated user profile' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/auth/change-password': {
+      patch: {
+        tags: ['Auth'],
+        summary: 'Change password and revoke all existing sessions',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['currentPassword', 'newPassword'],
+                properties: {
+                  currentPassword: { type: 'string', format: 'password' },
+                  newPassword: { type: 'string', format: 'password' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Password changed and all sessions revoked' },
+          401: { description: 'Unauthorized or incorrect current password' },
         },
       },
     },
@@ -688,6 +834,13 @@ export const swaggerSpec = {
     },
   },
   components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+    },
     schemas: {
       Information: {
         type: 'object',
